@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Footy Chocolates</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+body{
+margin:0;
+font-family:'Inter';
+background:radial-gradient(circle at top,#1a1a1a,#000);
+color:#fff;
+scroll-behavior:smooth;
+}
+
+/* HEADER */
+header{
+position:fixed;
+top:0;width:100%;
+text-align:center;
+padding:15px;
+background:rgba(0,0,0,0.6);
+backdrop-filter:blur(10px);
+color:#d4af37;
+font-weight:700;
+z-index:1000;
+}
+
+/* HERO */
+.hero{
+height:100vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+}
+.hero h1{
+font-size:48px;
+background:linear-gradient(90deg,#d4af37,#fff);
+-webkit-background-clip:text;
+color:transparent;
+}
+
+/* SECTION */
+.section{
+padding:100px 20px;
+max-width:1100px;
+margin:auto;
+}
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:25px;
+}
+
+/* CARD */
+.card{
+border-radius:22px;
+padding:25px;
+background:linear-gradient(145deg,#1a1a1a,#000);
+border:1px solid rgba(212,175,55,0.15);
+transition:0.4s;
+}
+
+.card:hover{
+transform:translateY(-12px) scale(1.04);
+box-shadow:0 20px 60px rgba(212,175,55,0.2);
+}
+
+.price{
+color:#d4af37;
+font-size:22px;
+font-weight:bold;
+}
+
+/* BUTTON */
+.btn{
+margin-top:10px;
+padding:10px;
+background:#d4af37;
+border:none;
+width:100%;
+border-radius:10px;
+cursor:pointer;
+}
+
+/* INPUT */
+input,textarea,select{
+width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:8px;
+}
+
+/* CART */
+.cart{
+position:fixed;
+right:-100%;
+top:0;
+width:320px;
+height:100%;
+background:#111;
+padding:20px;
+transition:0.4s;
+overflow:auto;
+}
+.cart.active{right:0;}
+
+.cart-btn{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#d4af37;
+padding:15px;
+border-radius:50%;
+cursor:pointer;
+}
+
+/* MODAL */
+.modal{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.8);
+display:flex;
+justify-content:center;
+align-items:center;
+visibility:hidden;
+}
+.modal.active{visibility:visible;}
+
+.modal-content{
+background:#fff;
+color:#000;
+padding:20px;
+border-radius:15px;
+width:300px;
+}
+
+/* TOAST */
+.toast{
+position:fixed;
+bottom:80px;
+right:20px;
+background:#d4af37;
+color:#000;
+padding:10px;
+border-radius:10px;
+opacity:0;
+transition:0.3s;
+}
+.toast.show{opacity:1;}
+
+/* REVEAL */
+.reveal{
+opacity:0;
+transform:translateY(50px);
+transition:0.8s;
+}
+.reveal.active{
+opacity:1;
+transform:translateY(0);
+}
+</style>
+</head>
+<body>
+
+<header>🍫 Footy Chocolates</header>
+
+<!-- HERO -->
+<section class="hero">
+<h1>Luxury Handmade Chocolates</h1>
+<p>Milk • Dark • White | Premium Experience</p>
+</section>
+
+<!-- PRODUCTS -->
+<section class="section reveal">
+<h2>Our Collection</h2>
+<div class="grid" id="productList"></div>
+</section>
+
+<!-- CUSTOM -->
+<section class="section reveal">
+<h2>🎂 Custom / Birthday Orders</h2>
+<input type="number" id="qty" placeholder="No. of chocolates" oninput="calcPrice()">
+<select id="custom">
+<option value="no">Normal</option>
+<option value="yes">Custom Name (+₹20 each)</option>
+</select>
+<h3>Total ₹<span id="price">0</span></h3>
+<button class="btn" onclick="sendCustom()">Order on WhatsApp</button>
+</section>
+
+<!-- CART -->
+<div class="cart" id="cart">
+<h2>Cart</h2>
+<ul id="cartItems"></ul>
+<h3>Total ₹<span id="total">0</span></h3>
+<button class="btn" onclick="openModal()">Checkout</button>
+</div>
+
+<div class="cart-btn" onclick="toggleCart()">🛒</div>
+
+<!-- CHECKOUT -->
+<div class="modal" id="modal">
+<div class="modal-content">
+<h3>Checkout</h3>
+<input id="name" placeholder="Name">
+<input id="phone" placeholder="Phone">
+<textarea id="address" placeholder="Address"></textarea>
+<select id="payment">
+<option>UPI</option>
+<option>Cash on Delivery</option>
+</select>
+<button class="btn" onclick="placeOrder()">Confirm</button>
+</div>
+</div>
+
+<div class="toast" id="toast">Added to cart ✅</div>
+
+<script>
+const products=[
+  ["Single Chocolate","Milk / Dark / White",59],
+  ["Pack of 4 ⭐","Mixed flavours",99],
+  ["Pack of 10 🔥","Best value pack",249],
+  ["Assorted Box","All flavours",199],
+  ["Mini Party Pack","12 chocolates",299],
+  ["Gift Box","Premium collection",349],
+  ["Chocolate Jar","Bite size treats",149],
+  ["Full Bar","Milk / Dark / White",119]
+];
+
+let list=document.getElementById("productList");
+
+products.forEach((p,i)=>{
+list.innerHTML+=`
+<div class="card">
+<div style="display:flex;justify-content:space-between;">
+<h3>${p[0]}</h3>
+<span style="color:#d4af37;font-size:12px;">★ Popular</span>
+</div>
+<p style="color:#ccc;">${p[1]}</p>
+<p class="price">₹${p[2]}</p>
+<small style="color:#888;">
+✔ Includes GST<br>✔ Free Delivery
+</small>
+<select id="flavour${i}">
+<option>Milk</option>
+<option>Dark</option>
+<option>White</option>
+</select>
+<button class="btn" onclick="addToCart('${p[0]}',${p[2]},${i})">
+Add to Cart
+</button>
+</div>`;
+});
+
+/* CART */
+let cart=[],total=0;
+
+function addToCart(n,p,i){
+let f=document.getElementById("flavour"+i).value;
+cart.push({n:n+" ("+f+")",p});
+total+=p;
+updateCart();toast();
+}
+
+function updateCart(){
+let ul=document.getElementById("cartItems");
+ul.innerHTML="";
+cart.forEach((i,index)=>{
+ul.innerHTML+=`<li>${i.n} ₹${i.p} <button onclick="removeItem(${index})">❌</button></li>`;
+});
+document.getElementById("total").innerText=total;
+}
+
+function removeItem(i){
+total-=cart[i].p;
+cart.splice(i,1);
+updateCart();
+}
+
+function toggleCart(){
+document.getElementById("cart").classList.toggle("active");
+}
+
+/* CHECKOUT */
+function openModal(){
+document.getElementById("modal").classList.add("active");
+}
+
+function placeOrder(){
+let name=document.getElementById("name").value;
+let phone=document.getElementById("phone").value;
+let address=document.getElementById("address").value;
+let pay=document.getElementById("payment").value;
+
+let msg="Order:%0A";
+cart.forEach(i=>msg+=i.n+" ₹"+i.p+"%0A");
+msg+="Total ₹"+total+"%0A";
+msg+="Name:"+name+"%0APhone:"+phone+"%0AAddress:"+address+"%0APayment:"+pay;
+
+window.open("https://wa.me/918121831728?text="+msg);
+}
+
+/* TOAST */
+function toast(){
+let t=document.getElementById("toast");
+t.classList.add("show");
+setTimeout(()=>t.classList.remove("show"),1500);
+}
+
+/* CUSTOM */
+function calcPrice(){
+let q=document.getElementById("qty").value||0;
+let c=document.getElementById("custom").value;
+let extra=(c==="yes")?20:0;
+document.getElementById("price").innerText=q*(59+extra);
+}
+
+function sendCustom(){
+let q=document.getElementById("qty").value;
+let p=document.getElementById("price").innerText;
+window.open("https://wa.me/918121831728?text=Custom Order "+q+" chocolates Total ₹"+p);
+}
+
+/* SCROLL */
+window.addEventListener("scroll",()=>{
+document.querySelectorAll(".reveal").forEach(el=>{
+if(el.getBoundingClientRect().top < window.innerHeight-100){
+el.classList.add("active");
+}
+});
+});
+</script>
+</body>
+</html>
